@@ -1,0 +1,162 @@
+pragma solidity >=0.4.20 <0.6.0;
+
+contract Election {
+
+    struct Candidate {
+        uint id;
+        string candidateID;
+        string name;
+        string partyName;
+        string imagePath;
+        uint voteCount;
+        uint parcetange;
+        uint marginWL;
+        string winloss;
+    }
+    
+    struct Voter {
+        uint voterID;
+        address voterAddress;
+        string voterElectionId;
+        string voterFastName;
+        string voterLastName;
+        uint voterGender;
+        bool voterVoted;
+    }
+
+    mapping(uint => Candidate) public candidates;
+    mapping(address => Voter) public VoterData;
+
+    uint candidatesCount;
+    uint totalVoteCount=0;
+    uint voterCounts=0;
+    uint public startTime=0;
+    uint public endTime=0;
+    
+    address public creatoreAddress;
+   
+
+    event addCandidateEvent(uint _candidateId, string candidateID,string _candidateName, string _partyName,string imagePath);
+    event addVoterEvent(uint _voterId, address _voterAddress,string _voterElectionId,string _voterFastName,string _voterLastName, uint _voterGender,bool _voterVoted);
+    event errorLog(string _errorLog);
+    event votingLog(string _voterStatus);
+    
+    event winnerData(uint _id,string candidateID,string candidateName,string partyName,uint _voteCount,uint _parcetange,uint marginWL,string _winloss);
+    event uservoteLog(string _candidateId,address _voterAddress);
+    
+   
+    
+    modifier checkVoterAddress(address _voterAddress){
+        if(VoterData[_voterAddress].voterAddress == _voterAddress){
+            _;
+        } else {
+            emit votingLog("You have not register for voting!");
+        }
+    }
+
+    modifier voterVoteStatus(address _voterAddress){
+        if(!VoterData[_voterAddress].voterVoted){
+            _;
+        } else {
+            emit votingLog("You had voted for this time!");
+        }
+    }
+
+    constructor() public {
+         creatoreAddress = msg.sender;
+    }
+    
+    function startVotingTime(uint _startTime) public returns(uint){
+        startTime = _startTime;
+        endTime = now + _startTime;
+        return endTime;
+    }
+
+    function addCandidate(string memory _candidateID,string memory _name,string memory _partyName, string memory _imagePath) public{
+        candidatesCount++;
+        candidates[candidatesCount] = Candidate(candidatesCount, _candidateID,_name,_partyName,_imagePath,0,0,0,"N");
+
+        emit addCandidateEvent(candidatesCount,_candidateID,_name,_partyName,_imagePath);
+    }
+    
+
+    function addVoterData(address  _Address, string memory _voterElectionId,string memory _FName,string memory _LName, uint _Gender) public {
+        if(VoterData[_Address].voterAddress == _Address)
+        {
+           emit errorLog("Register user");
+        } else {
+            voterCounts += 1;
+            VoterData[_Address] = Voter(voterCounts, _Address,_voterElectionId, _FName, _LName, _Gender, false);
+
+            emit addVoterEvent(voterCounts, _Address, _voterElectionId, _FName, _LName, _Gender,false);
+        }
+    }
+
+    function vote(uint _vcid,string memory _candidateID,address _voterAddress) public checkVoterAddress(_voterAddress) voterVoteStatus(_voterAddress) {
+        totalVoteCount +=1;
+        require(_vcid > 0 && _vcid <= candidatesCount);
+
+        VoterData[_voterAddress].voterVoted = true;
+        candidates[_vcid].voteCount++;
+        emit uservoteLog(_candidateID,_voterAddress);
+    }
+
+    function winer() public {
+      uint winerId;
+      uint totalcount=0;
+      endTime = 0;
+      uint highparcentag=0;
+      for(uint i=0; i <= candidatesCount; i++){
+          candidates[i].parcetange = (candidates[i].voteCount * 100) / totalVoteCount;
+          if(candidates[i].voteCount > totalcount){
+                totalcount = candidates[i].voteCount;
+                highparcentag = candidates[i].parcetange;
+                winerId = i;
+          }
+      }
+      setData(highparcentag);
+      
+    }
+
+    function setData(uint highparcent) private {
+      uint winerData = Tiecheck(highparcent);
+      for(uint i=0; i <= candidatesCount; i++){
+      if(highparcent != candidates[i].parcetange ) {
+        candidates[i].marginWL = (highparcent - candidates[i].parcetange);
+        candidates[i].winloss ="Loss";
+      } else {
+             if(winerData == 1){
+                 candidates[i].marginWL = (highparcent - candidates[i].parcetange);
+                 candidates[i].winloss = "Won";
+             }
+             else {
+               candidates[i].marginWL = (highparcent - candidates[i].parcetange);
+               candidates[i].winloss = "Tie";
+                }
+        }
+		emit winnerData(candidates[i].id,candidates[i].candidateID,candidates[i].name,candidates[i].partyName,candidates[i].voteCount,candidates[i].parcetange,candidates[i].marginWL,candidates[i].winloss);
+      }
+    }
+    
+    function Tiecheck(uint highparcent) private view returns(uint){
+        uint chektie=0;
+        for(uint x=0; x <= candidatesCount; x++){
+            if(highparcent == candidates[x].parcetange)
+            {
+                chektie +=1;
+            }
+        }
+        return chektie;
+    }
+
+    function getVoterDataById(address  _voterAddress) private view returns(uint,string memory,string memory,string memory,uint,bool){        
+        return (
+            VoterData[_voterAddress].voterID,
+            VoterData[_voterAddress].voterElectionId,
+            VoterData[_voterAddress].voterFastName,
+            VoterData[_voterAddress].voterLastName,
+            VoterData[_voterAddress].voterGender,
+            VoterData[_voterAddress].voterVoted);
+        }
+
+}
