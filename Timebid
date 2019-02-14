@@ -1,0 +1,37 @@
+pragma solidity >=0.4.0 <0.6.0;
+
+contract TimeBid {
+    
+    uint public endTime;
+    string public  mname;
+    uint public votedd;
+    uint public time;
+    uint public timess;
+    function bidStart(uint timesrart,string memory name) public {
+        endTime = timesrart + now;
+        mname = name;
+        
+    }
+    function check(string memory _st) public pure returns(bool){
+        if(keccak256(abi.encodePacked("vasudev")) == keccak256(abi.encodePacked(_st))){
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    function vote(uint votenumber) public returns(string memory){
+        time =now;
+        if(endTime <= now){
+            return "Time End";
+        } else {
+            votedd = votenumber;
+            return "vote succfully";
+        }
+    }
+    function f(uint start, uint daysAfter) public {
+    if (now >= start + daysAfter * 2 days) {
+      timess = start + daysAfter * 2 days;
+    }
+}
+}
